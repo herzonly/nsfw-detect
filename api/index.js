@@ -7,8 +7,6 @@ const express = require('express');
 const multer = require('multer');
 const { Octokit } = require('@octokit/rest');
 
-const app = express();
-const port = 3000;
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 const octokit = new Octokit({
@@ -47,7 +45,7 @@ async function uploadResultToGitHub(result) {
   try {
     const content = Buffer.from(JSON.stringify(result, null, 2)).toString('base64');
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `result-${timestamp}.json`;
+    const filename = `tmp/result-${timestamp}.json`;
 
     await octokit.repos.createOrUpdateFileContents({
       owner: 'herzonly',
@@ -97,11 +95,11 @@ async function checkBuffer(buffer, filename) {
   }
 }
 
+const app = express();
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/index.html'));
+  res.sendFile(path.join(__dirname, "..", "public", "index.html" ))
 });
 
 app.post('/api/check-image', upload.single('image'), async (req, res) => {
@@ -110,6 +108,7 @@ app.post('/api/check-image', upload.single('image'), async (req, res) => {
   }
 
   try {
+    await loadModel();
     const result = await checkBuffer(req.file.buffer, req.file.originalname);
     return res.json(result);
   } catch (error) {
@@ -117,30 +116,8 @@ app.post('/api/check-image', upload.single('image'), async (req, res) => {
   }
 });
 
-app.post('/api/check-folder', async (req, res) => {
-  return res.status(400).json({ error: 'Folder checking not supported in read-only environment' });
+app.get('/api', (req, res) => {
+  res.json({ message: "NSFW Detector API is running" });
 });
 
-async function startServer() {
-  const modelLoaded = await loadModel();
-  
-  if (modelLoaded) {
-    app.listen(port, () => {
-      console.log(`NSFW Detector server running at http://localhost:${port}`);
-    });
-  } else {
-    console.error("Failed to load NSFW model. Server not started.");
-    process.exit(1);
-  }
-}
-
-if (require.main === module) {
-  startServer();
-}
-
-module.exports = {
-  loadModel,
-  checkBuffer,
-  isNSFW,
-  uploadResultToGitHub
-};
+module.exports = app;
