@@ -143,4 +143,4 @@ if (require.main === module) {
   startServer();
 }
 
-module.exports = NSFWDetector;
+module.exports = new NSFWDetector;
