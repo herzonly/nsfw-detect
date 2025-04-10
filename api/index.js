@@ -1,26 +1,20 @@
 const nsfwjs = require('nsfwjs');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { createCanvas, loadImage } = require('canvas');
 const express = require('express');
 const multer = require('multer');
+const { Octokit } = require('@octokit/rest');
 const app = express();
 const port = 3000;
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/')
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname))
-  }
-});
-
+const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-if (!fs.existsSync('uploads/')){
-  fs.mkdirSync('uploads/');
-}
+const octokit = new Octokit({
+  auth: process.env.GITHUB_TOKEN
+});
 
 class NSFWDetector {
   constructor() {
@@ -40,13 +34,13 @@ class NSFWDetector {
     }
   }
 
-  async checkImage(imagePath) {
+  async checkBuffer(buffer, filename) {
     if (!this.isLoaded) {
       throw new Error("Model not loaded yet");
     }
 
     try {
-      const image = await loadImage(imagePath);
+      const image = await loadImage(buffer);
       const canvas = createCanvas(image.width, image.height);
       const ctx = canvas.getContext('2d');
       ctx.drawImage(image, 0, 0);
@@ -54,48 +48,42 @@ class NSFWDetector {
       const predictions = await this.model.classify(canvas);
       
       const result = {
-        fileName: path.basename(imagePath),
+        fileName: filename,
         predictions: predictions,
         nsfw: this.isNSFW(predictions)
       };
       
+      await this.uploadResultToGitHub(result);
+      
       return result;
     } catch (error) {
-      console.error(`Error analyzing image ${imagePath}:`, error);
+      console.error(`Error analyzing image ${filename}:`, error);
       throw error;
     }
   }
 
-  async checkFolder(folderPath) {
-    if (!this.isLoaded) {
-      throw new Error("Model not loaded yet");
+  async uploadResultToGitHub(result) {
+    try {
+      const content = Buffer.from(JSON.stringify(result, null, 2)).toString('base64');
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = `result-${timestamp}.json`;
+
+      await octokit.repos.createOrUpdateFileContents({
+        owner: 'dbcds',
+        repo: 'tmp',
+        path: filename,
+        message: `NSFW detection result for ${result.fileName}`,
+        content: content,
+        committer: {
+          name: 'NSFW Detector',
+          email: 'noreply@example.com'
+        }
+      });
+
+      console.log(`Result uploaded to GitHub: ${filename}`);
+    } catch (error) {
+      console.error('Error uploading to GitHub:', error);
     }
-
-    const results = [];
-    const files = fs.readdirSync(folderPath);
-    const imageFiles = files.filter(file => 
-      /\.(jpg|jpeg|png|gif)$/i.test(file)
-    );
-
-    for (const file of imageFiles) {
-      try {
-        const imagePath = path.join(folderPath, file);
-        const result = await this.checkImage(imagePath);
-        results.push(result);
-      } catch (error) {
-        console.error(`Error processing ${file}:`, error);
-        results.push({
-          fileName: file,
-          error: error.message
-        });
-      }
-    }
-
-    return {
-      totalImages: imageFiles.length,
-      nsfwCount: results.filter(r => r.nsfw).length,
-      results: results
-    };
   }
 
   isNSFW(predictions) {
@@ -127,7 +115,7 @@ app.post('/api/check-image', upload.single('image'), async (req, res) => {
   }
 
   try {
-    const result = await detector.checkImage(req.file.path);
+    const result = await detector.checkBuffer(req.file.buffer, req.file.originalname);
     return res.json(result);
   } catch (error) {
     return res.status(500).json({ error: error.message });
@@ -135,16 +123,7 @@ app.post('/api/check-image', upload.single('image'), async (req, res) => {
 });
 
 app.post('/api/check-folder', async (req, res) => {
-  if (!req.body.folderPath) {
-    return res.status(400).json({ error: 'No folder path provided' });
-  }
-
-  try {
-    const result = await detector.checkFolder(req.body.folderPath);
-    return res.json(result);
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
-  }
+  return res.status(400).json({ error: 'Folder checking not supported in read-only environment' });
 });
 
 async function startServer() {
