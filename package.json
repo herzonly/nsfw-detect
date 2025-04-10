@@ -1,33 +1,18 @@
 {
-  "name": "nsfw-detector",
+  "name": "nsfw-detector-api",
   "version": "1.0.0",
-  "description": "NSFW image detection tool with GitHub integration",
+  "description": "Simple NSFW detector using NSFWJS and Express",
   "main": "api/index.js",
   "scripts": {
-    "start": "node api/index.js",
-    "dev": "nodemon index.js"
+    "start": "node api/index.js"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/dbcds/tmp.git"
-  },
-  "keywords": [
-    "nsfw",
-    "detection",
-    "github",
-    "octokit"
-  ],
+  "author": "YourName",
+  "license": "MIT",
   "dependencies": {
-    "@octokit/rest": "^16.43.2",
-    "canvas": "^2.11.2",
-    "@tensorflow/tfjs-node": "*",
+    "@tensorflow/tfjs-node": "^4.12.0",
+    "cors": "^2.8.5",
     "express": "^4.18.2",
     "multer": "^1.4.5-lts.1",
-    "nsfwjs": "^2.4.2"
-  },
-  "devDependencies": {
-    "nodemon": "^2.0.22"
-  },
-  "author": "",
-  "license": "MIT"
+    "nsfwjs": "^2.4.0"
+  }
 }
