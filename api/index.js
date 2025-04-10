@@ -18,7 +18,10 @@ let isModelLoaded = false;
 
 async function loadModel() {
   try {
+    require('@tensorflow/tfjs-node');
+
     model = await nsfwjs.load();
+    
     isModelLoaded = true;
     console.log("NSFW detection model loaded successfully");
     return true;
