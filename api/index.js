@@ -13,7 +13,7 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 const octokit = new Octokit({
-  auth: process.env.GITHUB_TOKEN
+  auth: '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'
 });
 
 class NSFWDetector {
@@ -69,7 +69,7 @@ class NSFWDetector {
       const filename = `result-${timestamp}.json`;
 
       await octokit.repos.createOrUpdateFileContents({
-        owner: 'dbcds',
+        owner: 'herzonly',
         repo: 'tmp',
         path: filename,
         message: `NSFW detection result for ${result.fileName}`,
