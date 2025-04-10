@@ -1,26 +1,19 @@
 {
-  "name": "nsfw-image-detector",
+  "name": "nsfw-detector",
   "version": "1.0.0",
-  "description": "A simple NSFW (Not Safe For Work) image detection tool using NSFWJS",
+  "description": "NSFW image detection tool with GitHub integration",
   "main": "api/index.js",
   "scripts": {
     "start": "node api/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [
-    "nsfw",
-    "image",
-    "detection",
-    "moderation",
-    "content",
-    "filter"
-  ],
-  "author": "",
-  "license": "MIT",
   "dependencies": {
+    "@octokit/rest": "^16.43.2",
     "canvas": "^2.11.2",
     "express": "^4.18.2",
     "multer": "^1.4.5-lts.1",
     "nsfwjs": "^2.4.2"
   }
+  "author": "",
+  "license": "MIT"
 }
